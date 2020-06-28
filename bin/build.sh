@@ -2,11 +2,11 @@
 
 mkdir -p dist
 
-willet-compile app.wlt dist
+node_modules/.bin/willet-compile app.wlt dist
 
 if [ $? != 0 ]; then
   printf "Compile failed"
   exit 1
 fi
 
-browserify main.js -o dist/bundle.js
+node_modules/.bin/browserify main.js -o dist/bundle.js

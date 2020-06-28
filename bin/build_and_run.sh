@@ -7,4 +7,4 @@
    exit 1
  fi
 
- http-server
+ node_modules/.bin/http-server
