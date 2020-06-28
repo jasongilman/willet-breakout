@@ -1,0 +1,25 @@
+{
+  "name": "willet-breakout",
+  "version": "1.0.0",
+  "description": "Implementation of Breakout with Willet",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "run": "open http://localhost:8080; http-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jasongilman/willet-breakout.git"
+  },
+  "author": "Jason Gilman",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jasongilman/willet-breakout/issues"
+  },
+  "homepage": "https://github.com/jasongilman/willet-breakout#readme",
+  "dependencies": {
+    "browserify": "^16.5.1",
+    "http-server": "^0.12.3",
+    "willet": "0.0.1-alpha6"
+  }
+}
