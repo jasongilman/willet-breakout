@@ -1,137 +1,128 @@
-let canvas
-let ctx
-const ballRadius = 10
-let x
-let y
-let dx = 2
-let dy = -2
-const paddleHeight = 10
-const paddleWidth = 75
-let paddleX
-let rightPressed = false
-let leftPressed = false
-const brickRowCount = 5
-const brickColumnCount = 3
-const brickWidth = 75
-const brickHeight = 20
-const brickPadding = 10
-const brickOffsetTop = 30
-const brickOffsetLeft = 30
-let score = 0
-let lives = 3
+const BALL_RADIUS = 10
+const PADDLE_HEIGHT = 10
+const PADDLE_WIDTH = 75
+const BRICK_ROW_COUNT = 5
+const BRICK_COLUMN_COUNT = 3
+const BRICK_WIDTH = 75
+const BRICK_HEIGHT = 20
+const BRICK_PADDING = 10
+const BRICK_OFFSET_TOP = 30
+const BRICK_OFFSET_LEFT = 30
 
-let bricks
+let state;
 
-const keyDownHandler = #(e) => {
-  if (e.keyCode == 39) {
-    rightPressed = true
-  }
-  elseif (e.keyCode == 37) {
-    leftPressed = true
-  }
-}
-const keyUpHandler = #(e) => {
-  if (e.keyCode == 39) {
-    rightPressed = false
-  }
-  elseif (e.keyCode == 37) {
-    leftPressed = false
-  }
-}
-const mouseMoveHandler = #(e) => {
-  const relativeX = e.clientX - canvas.offsetLeft
-  if (relativeX > 0 && relativeX < canvas.width) {
-    paddleX = relativeX - paddleWidth / 2
-  }
+const updateState = #(f) => {
+  state = f(state)
 }
 
-const collisionDetection = #() => {
-  bricks = doAll(map(bricks #(b) => {
-    if (b.:status == 1 && x > b.:x && x < b.:x + brickWidth && y > b.:y && y < b.:y + brickHeight) {
-      dy = -1 * dy
-      score = score + 1
-      if (score == brickRowCount * brickColumnCount) {
-        alert("YOU WIN CONGRATS!")
-        document.location.reload()
-      }
-      else {
-        set(b :status 0)
+const createState = #() => {
+  const canvas = document.getElementById("myCanvas2")
+  #{
+    canvas
+    ctx: canvas.getContext("2d")
+    x: canvas.width / 2
+    y: canvas.height - 30
+    paddleX: #(canvas.width - PADDLE_WIDTH) / 2
+    score: 0
+    lives: 3
+    dx: 2
+    dy: -2
+    bricks: for(
+      column range(0 BRICK_COLUMN_COUNT)
+      row range(0 BRICK_ROW_COUNT)
+    ) {
+      #{
+        x: #(row * #(BRICK_WIDTH + BRICK_PADDING)) + BRICK_OFFSET_LEFT
+        y: #(column * #(BRICK_HEIGHT + BRICK_PADDING)) + BRICK_OFFSET_TOP
+        row
+        column
       }
     }
-    else {
-      b
-    }
-  }))
+  }
 }
 
 const drawBall = #() => {
+  const ctx = state.:ctx
   ctx.beginPath()
-  ctx.arc(x y ballRadius 0 Math.PI * 2)
+  ctx.arc(state.:x state.:y BALL_RADIUS 0 Math.PI * 2)
   ctx.fillStyle = "#0095DD"
   ctx.fill()
   ctx.closePath()
 }
 
 const drawPaddle = #() => {
+  const ctx = state.:ctx
+  const canvas = state.:canvas
   ctx.beginPath()
-  ctx.rect(paddleX canvas.height - paddleHeight paddleWidth paddleHeight)
+  ctx.rect(state.:paddleX canvas.height - PADDLE_HEIGHT PADDLE_WIDTH PADDLE_HEIGHT)
   ctx.fillStyle = "#0095DD"
   ctx.fill()
   ctx.closePath()
 }
 
-
-// TODO this is combining drawing a brick with moving the brick. Change it.
 const drawBricks = #() => {
-  bricks = doAll(map(bricks #(b) => {
-    if (b.:status == 1) {
-      const brickX = #(b.:row * #(brickWidth + brickPadding)) + brickOffsetLeft
-      const brickY = #(b.:column * #(brickHeight + brickPadding)) + brickOffsetTop
-      ctx.beginPath()
-      ctx.rect(brickX brickY brickWidth brickHeight)
-      ctx.fillStyle = "#0095DD"
-      ctx.fill()
-      ctx.closePath()
-      chain(b) {
-        set(:x brickX)
-        set(:y brickY)
-      }
-    }
-    else {
-      b
-    }
+  const ctx = state.:ctx
+  doAll(map(state.:bricks #(b) => {
+    ctx.beginPath()
+    ctx.rect(b.:x b.:y BRICK_WIDTH BRICK_HEIGHT)
+    ctx.fillStyle = "#0095DD"
+    ctx.fill()
+    ctx.closePath()
   }))
 }
 
 const drawScore = #() => {
+  const ctx = state.:ctx
   ctx.font = "16px Arial"
   ctx.fillStyle = "#0095DD"
-  ctx.fillText("Score: " + score 8 20)
+  ctx.fillText("Score: " + state.:score 8 20)
 }
 
 const drawLives = #() => {
+  const ctx = state.:ctx
+  const canvas = state.:canvas
   ctx.font = "16px Arial"
   ctx.fillStyle = "#0095DD"
-  ctx.fillText("Lives: " + lives canvas.width - 65 20)
+  ctx.fillText("Lives: " + state.:lives canvas.width - 65 20)
 }
 
-const draw = #() => {
-  ctx.clearRect(0 0 canvas.width canvas.height)
-  drawBricks()
-  drawBall()
-  drawPaddle()
-  drawScore()
-  drawLives()
-  collisionDetection()
+const collisionDetection = #(state) => {
+  const bricks = filter(state.:bricks #(b) => !#(
+    state.:x > b.:x &&
+    state.:x < b.:x + BRICK_WIDTH &&
+    state.:y > b.:y &&
+    state.:y < b.:y + BRICK_HEIGHT))
 
-  if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+  if (count(state.:bricks) > count(bricks)) {
+    // A brick was removed due to collision
+    chain(state) {
+      set(:bricks bricks)
+      update(:dy #(v) => v * -1)
+      update(:score #(v) => v + 1)
+    }
+  }
+  else {
+    set(state :bricks bricks)
+  }
+}
+
+const moveBall = #(state) => {
+  const canvas = state.:canvas
+  let x = state.:x
+  let dx = state.:dx
+  let y = state.:y
+  let dy = state.:dy
+  let lives = state.:lives
+  let paddleX = state.:paddleX
+
+  if (x + dx > canvas.width - BALL_RADIUS || x + dx < BALL_RADIUS) {
     dx = -1 * dx
   }
-  if (y + dy < ballRadius) {
+  if (y + dy < BALL_RADIUS) {
     dy = -1 * dy
   }
-  elseif (y + dy > canvas.height - ballRadius) {
-    if (x > paddleX && x < paddleX + paddleWidth) {
+  elseif (y + dy > canvas.height - BALL_RADIUS) {
+    if (x > paddleX && x < paddleX + PADDLE_WIDTH) {
         dy = -1 * dy
     }
     else {
@@ -145,47 +136,59 @@ const draw = #() => {
         y = canvas.height - 30
         dx = 3
         dy = -3
-        paddleX = #(canvas.width - paddleWidth) / 2
+        paddleX = #(canvas.width - PADDLE_WIDTH) / 2
       }
     }
   }
-
-  if (rightPressed && paddleX < canvas.width - paddleWidth) {
-    paddleX = paddleX + 7
-  }
-  elseif (leftPressed && paddleX > 0) {
-    paddleX = paddleX - 7
-  }
-
   x = x + dx
   y = y + dy
-  requestAnimationFrame(draw)
+  chain(state) {
+    set(:x x)
+    set(:y y)
+    set(:dx dx)
+    set(:dy dy)
+    set(:lives lives)
+    set(:paddleX paddleX)
+  }
+}
+
+const draw = #() => {
+  const canvas = state.:canvas
+  const ctx = state.:ctx
+  ctx.clearRect(0 0 canvas.width canvas.height)
+  drawBricks()
+  drawBall()
+  drawPaddle()
+  drawScore()
+  drawLives()
+  updateState(collisionDetection)
+
+  if (state.:score == BRICK_ROW_COUNT * BRICK_COLUMN_COUNT) {
+    alert("YOU WIN CONGRATS!")
+    document.location.reload()
+  }
+  else {
+    updateState(moveBall)
+    requestAnimationFrame(draw)
+  }
+
 }
 
 const main = #() => {
-  canvas = document.getElementById("myCanvas2")
-  ctx = canvas.getContext("2d")
-  x = canvas.width / 2
-  y = canvas.height - 30
-  paddleX = #(canvas.width - paddleWidth) / 2
+  // Initialize state
+  updateState(createState)
 
-  document.addEventListener("keydown" keyDownHandler false)
-  document.addEventListener("keyup" keyUpHandler false)
-  document.addEventListener("mousemove" mouseMoveHandler false)
-
-  bricks = for(
-    column range(0 brickColumnCount)
-    row range(0 brickRowCount)
-  ) {
-    // TODO change status from a number to a boolean
-    #{
-      x: 0
-      y: 0
-      status: 1
-      row
-      column
-    }
-  }
+  document.addEventListener("mousemove" #(e) => {
+    updateState(#(state) => {
+      const relativeX = e.clientX - state.:canvas.offsetLeft
+      if (relativeX > 0 && relativeX < state.:canvas.width) {
+        set(state :paddleX relativeX - PADDLE_WIDTH / 2)
+      }
+      else {
+        state
+      }
+    })
+  } false)
 
   draw()
 }
